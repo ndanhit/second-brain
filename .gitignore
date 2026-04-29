@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# Environment
+.env
+.env.*
+
+# Inbox is a personal drop zone — contents are intentionally not tracked.
+# Comment this out if you want to commit raw inbox files.
+/knowledge-base/0-inbox/*
+!/knowledge-base/0-inbox/.gitkeep

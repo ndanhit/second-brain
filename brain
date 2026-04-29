@@ -1,0 +1,37 @@
+#!/bin/bash
+# Second Brain — note ingestion pipeline (bash wrapper).
+#
+# Usage:
+#   ./brain <path_to_note>
+#
+# Creates a venv on first run, installs dependencies, normalizes the note via
+# Claude, then rebuilds the knowledge index.
+
+set -e
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: ./brain <path_to_note>"
+    exit 1
+fi
+
+NOTE_PATH=$1
+
+# 1. Ensure venv exists
+if [ ! -d ".venv" ]; then
+    echo "Initializing virtual environment..."
+    python3 -m venv .venv
+fi
+
+# 2. Activate venv
+source .venv/bin/activate
+
+# 3. Ensure core dependencies
+pip install python-frontmatter --quiet
+
+# 4. Normalize and ingest
+echo "Processing note: $NOTE_PATH"
+python3 knowledge-base/scripts/normalize_notes.py "$NOTE_PATH"
+
+# 5. Rebuild index
+echo "Rebuilding index..."
+python3 knowledge-base/scripts/build_index.py

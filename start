@@ -1,0 +1,22 @@
+#!/bin/bash
+# Second Brain — launch the optional FastAPI dashboard at http://localhost:8888
+
+set -e
+
+# 1. Ensure venv exists
+if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv .venv
+fi
+
+# 2. Activate venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+echo "Checking dependencies..."
+pip install -r knowledge-base/requirements.txt --quiet
+
+echo "Starting Second Brain Dashboard..."
+echo "Open: http://localhost:8888"
+echo "-------------------------------------"
+python3 knowledge-base/ui/app.py

@@ -1,0 +1,15 @@
+# Knowledge Base Core
+python-frontmatter
+markdown
+pytest
+
+# Media Ingestion
+pypdf
+openai-whisper
+ffmpeg-python
+
+# Visual Dashboard (UI)
+fastapi
+uvicorn
+jinja2
+python-multipart
