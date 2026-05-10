@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Second Brain Dashboard</title>
+    <title>HRS Brain Dashboard Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -38,8 +38,11 @@
 
         .node { stroke: #000; stroke-width: 1.5px; cursor: pointer; transition: filter 0.2s; }
         .node:hover { filter: brightness(1.5); }
-        .link { stroke: #333; stroke-opacity: 0.4; }
+        .node.orphan { opacity: 0.35; }
+        .link { stroke: #475569; stroke-opacity: 0.4; }
+        .link.source { stroke: #6366f1; stroke-dasharray: 3,3; stroke-opacity: 0.5; }
         .node-label { fill: #999; font-size: 10px; pointer-events: none; }
+        .node-label.orphan { opacity: 0.4; }
     </style>
 </head>
 <body class="overflow-hidden">
@@ -115,10 +118,8 @@
                     .selectAll("line")
                     .data(data.links)
                     .enter().append("line")
-                    .attr("class", "link")
-                    .attr("stroke", "#475569")
-                    .attr("stroke-width", 1)
-                    .attr("stroke-opacity", 0.4)
+                    .attr("class", d => "link" + (d.kind === "source" ? " source" : ""))
+                    .attr("stroke-width", d => Math.min(1 + (d.value || 1) * 0.4, 4))
                     .attr("marker-end", "url(#arrowhead)");
 
                 const node = svg.append("g")
@@ -126,8 +127,11 @@
                     .selectAll("circle")
                     .data(data.nodes)
                     .enter().append("circle")
-                    .attr("class", "node")
-                    .attr("r", d => d.group === '1-projects' ? 8 : 5)
+                    .attr("class", d => "node" + (d.degree === 0 ? " orphan" : ""))
+                    .attr("r", d => {
+                        const base = d.group === '1-projects' ? 6 : 4;
+                        return base + Math.min(Math.sqrt(d.degree || 0) * 1.2, 8);
+                    })
                     .attr("fill", d => {
                         if (d.group === '1-projects') return '#3b82f6';
                         if (d.group === '2-areas') return '#10b981';
@@ -152,7 +156,7 @@
                     .selectAll("text")
                     .data(data.nodes)
                     .enter().append("text")
-                    .attr("class", "node-label")
+                    .attr("class", d => "node-label" + (d.degree === 0 ? " orphan" : ""))
                     .attr("dy", -10)
                     .attr("text-anchor", "middle")
                     .text(d => d.title)
@@ -313,7 +317,7 @@
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
                                     <Icons.Brain />
                                 </div>
-                                <h1 className="text-lg font-extrabold tracking-tighter text-white">Second Brain</h1>
+                                <h1 className="text-lg font-extrabold tracking-tighter text-white">HRS Brain</h1>
                             </div>
                             <div className="flex p-1 bg-white/10 rounded-lg border border-white/10 relative z-[110]">
                                 <a 
@@ -368,7 +372,7 @@
                                                 <div className="flex justify-between items-start mb-10">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-4 opacity-50">
-                                                            <span>Second Brain</span> <Icons.ChevronRight /> <span>{doc.path.split('/')[0]}</span>
+                                                            <span>HRS Brain</span> <Icons.ChevronRight /> <span>{doc.path.split('/')[0]}</span>
                                                         </div>
                                                         {/* Only show title if markdown content doesn't start with H1 */}
                                                         {!doc.content.includes('<h1') && (
