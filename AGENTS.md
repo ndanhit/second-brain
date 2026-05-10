@@ -42,8 +42,9 @@ If you write files manually, you **MUST**:
 2. **Auto-merge on collision** — read the existing file, integrate new info into its sections, **never delete prior context** unless the new note explicitly deprecates it.
 3. **Use templates** — copy frontmatter and section headings from `knowledge-base/templates/<type>.md`.
 4. **Track sources** — the `sources:` array MUST list project-relative paths. If the source file lives outside the repo, **copy it into `knowledge-base/notes/` first**, then reference that path.
-5. **Cross-link** — every mention of another system / concept / project must be a relative markdown link, e.g., `[Payment Service](2-areas/systems/payment-service.md)`.
+5. **Cross-link** — every mention of another system / concept / project must be a standard markdown link with `./` or `../` prefix relative to the current file's directory, e.g., from `3-resources/concepts/foo.md` use `[Payment Service](../../2-areas/systems/payment-service.md)`. No bare filenames, no kb-root-style paths, no backslashes, no wikilinks. For long target notes (>200 lines), prefer heading anchors (`[text](../foo.md#section)`).
 6. **Refresh the index** — run `python3 knowledge-base/scripts/build_index.py` after any write.
+7. **Validate links** — run `python3 knowledge-base/scripts/validate_links.py`. If violations appear, run `python3 knowledge-base/scripts/fix_links.py --apply`.
 
 ## Querying Workflow (retrieving knowledge)
 

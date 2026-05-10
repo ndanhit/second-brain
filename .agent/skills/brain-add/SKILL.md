@@ -15,7 +15,11 @@ Use this skill to transform raw notes, transcripts, or text into structured know
    - Map them to the PARA categories (`1-projects`, `2-areas/systems`, `2-areas/architecture`, `2-areas/architecture/adrs`, `2-areas/teams`, `3-resources/concepts`, `3-resources/playbooks`).
    - Apply the corresponding template from `knowledge-base/templates/` (frontmatter: `title`, `type`, `tags`, `updated`, `sources`).
    - **Policy — Sources**: The `sources` array MUST use project-relative paths (e.g., `knowledge-base/notes/filename.md`). If the input is a file outside the project, **copy it to `knowledge-base/notes/`** first before referencing it.
-   - **Policy — Cross-linking**: Use relative paths (e.g., `[System X](2-areas/systems/system-x.md)`) for internal links.
+   - **Policy — Cross-linking**: Internal links MUST be standard markdown with a `./` or `../` prefix, computed relative to the *current file's directory*. Examples:
+       - From `2-areas/systems/foo.md` to a sibling: `[Bar](./bar.md)`.
+       - From `3-resources/concepts/foo.md` to a system: `[Bar](../../2-areas/systems/bar.md)`.
+       - For long target notes (>200 lines), prefer heading anchors: `[Bar — Search flow](../../2-areas/systems/bar.md#search-flow)`.
+       - Do NOT use bare filenames (`bar.md`), kb-root-style paths (`2-areas/systems/bar.md`), absolute paths, backslashes (`\`), or wikilinks (`[[bar]]`). After writing, run `python3 knowledge-base/scripts/validate_links.py` — it should report 0 broken and 0 style violations.
    - **Policy — Filenames**: Lowercase kebab-case (`my-system.md`, not `MySystem.md`).
 3. **Merge Check (Collision Handling)**:
    - Before writing, check if the target file already exists.
@@ -23,6 +27,7 @@ Use this skill to transform raw notes, transcripts, or text into structured know
    - Append the new note path to the `sources` array; bump `updated` to today.
 4. **Write Files**: Save the structured markdown files to their respective locations.
 5. **Index Refresh**: Always run `python3 knowledge-base/scripts/build_index.py` after writing any files.
+6. **Link Validation**: Run `python3 knowledge-base/scripts/validate_links.py`. If it reports broken links or style violations, run `python3 knowledge-base/scripts/fix_links.py --apply` and re-validate.
 
 ## Example usage
 

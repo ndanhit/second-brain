@@ -65,15 +65,17 @@ def read_doc_entry(filepath: Path, index_output_dir: Path) -> Optional[dict]:
 
     try:
         rel_path = filepath.relative_to(index_output_dir)
+        # Force POSIX separators and './' prefix to match KB link convention.
+        path_str = "./" + rel_path.as_posix()
     except ValueError:
         # filepath is not relative to index_output_dir — use absolute
-        rel_path = filepath
+        path_str = str(filepath)
 
     return {
         "title": title,
         "tags": [str(t) for t in tags],
         "type": doc_type,
-        "path": str(rel_path),
+        "path": path_str,
     }
 
 

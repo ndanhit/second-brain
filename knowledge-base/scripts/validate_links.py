@@ -29,11 +29,13 @@ LINK_RE = re.compile(r'(?<!\!)\[([^\]]+)\]\(([^)]+)\)')
 FM_SOURCE_RE = re.compile(r'^\s*-\s*["\']?(knowledge-base/[^"\'\s]+)["\']?\s*$')
 
 
+SKIP_DIRS = ("_archive", "4-archives", "node_modules", ".venv", "templates", "prompts")
+
+
 def iter_md_files(kb_root: Path) -> Iterator[Path]:
     for p in kb_root.rglob("*.md"):
         rel = p.relative_to(kb_root)
-        parts = rel.parts
-        if any(part in ("_archive", "4-archives", "node_modules", ".venv") for part in parts):
+        if any(part in SKIP_DIRS for part in rel.parts):
             continue
         yield p
 
@@ -124,6 +126,7 @@ def main():
     all_files_set = set(str(p.resolve()) for p in kb_root.rglob("*") if p.is_file())
 
     broken: list[tuple[Path, int, str, str]] = []
+    style_violations: list[tuple[Path, int, str, str, str]] = []
     checked_count = 0
 
     for md_file in iter_md_files(kb_root):
@@ -131,34 +134,70 @@ def main():
         for line_no, text_label, target in extract_links(md_file):
             if is_external(target) or is_anchor_only(target):
                 continue
+            # Only validate .md targets — non-.md links (source-code refs in
+            # notes, e.g., '.java', '.xml', '.yml') aren't part of the KB graph.
+            path_only = target.split("#", 1)[0]
+            if not path_only.endswith(".md"):
+                continue
             checked_count += 1
+            # Backslash check — '\' breaks GitHub render and POSIX file:// links.
+            # Flag before resolve (resolve normalizes, masking the bug).
+            if "\\" in path_only:
+                style_violations.append(
+                    (md_file, line_no, target, text_label, "contains backslash (use '/')"),
+                )
+                continue
             resolved = resolve_target(target, md_file, kb_root)
             if not resolved.exists():
                 broken.append((md_file, line_no, target, text_label))
+                continue
+            # Convention check: must start with './' or '../' (no bare filenames,
+            # no kb-root-style paths, no absolute paths).
+            if not (path_only.startswith("./") or path_only.startswith("../")):
+                style_violations.append(
+                    (md_file, line_no, target, text_label, "missing './' or '../' prefix"),
+                )
 
-        # Frontmatter sources (must be kb-root-relative paths)
+        # Frontmatter sources (must be kb-root-relative paths).
+        # 0-inbox files are deleted by design after ingest, so missing entries
+        # under 0-inbox/ are expected and not reported.
         for line_no, source_path in extract_frontmatter_sources(md_file, kb_root):
+            if "/0-inbox/" in source_path:
+                continue
             checked_count += 1
-            # sources are paths relative to repo root (e.g., "knowledge-base/notes/x.md")
             resolved = (repo_root / source_path).resolve()
             if not resolved.exists():
                 broken.append((md_file, line_no, source_path, "[sources]"))
 
     # Report
-    if not broken:
-        print(f"OK: {checked_count} links checked, 0 broken.")
+    if not broken and not style_violations:
+        print(f"OK: {checked_count} links checked, 0 broken, 0 style violations.")
         sys.exit(0)
 
-    print(f"FAIL: {len(broken)} broken link(s) out of {checked_count} checked:\n", file=sys.stderr)
-    for md_file, line_no, target, text_label in broken:
-        rel = md_file.relative_to(kb_root)
-        print(f"  {rel}:{line_no}  [{text_label}]({target})", file=sys.stderr)
-        if args.fix_suggestions:
-            basename = Path(target.split("#")[0]).name
-            candidates = [Path(p).name for p in all_md_set]
-            close = difflib.get_close_matches(basename, candidates, n=3, cutoff=0.6)
-            if close:
-                print(f"      suggestions: {', '.join(close)}", file=sys.stderr)
+    if broken:
+        print(f"FAIL: {len(broken)} broken link(s) out of {checked_count} checked:\n", file=sys.stderr)
+        for md_file, line_no, target, text_label in broken:
+            rel = md_file.relative_to(kb_root)
+            print(f"  {rel}:{line_no}  [{text_label}]({target})", file=sys.stderr)
+            if args.fix_suggestions:
+                basename = Path(target.split("#")[0]).name
+                candidates = [Path(p).name for p in all_md_set]
+                close = difflib.get_close_matches(basename, candidates, n=3, cutoff=0.6)
+                if close:
+                    print(f"      suggestions: {', '.join(close)}", file=sys.stderr)
+
+    if style_violations:
+        if broken:
+            print("", file=sys.stderr)
+        print(
+            f"STYLE: {len(style_violations)} link convention violation(s) "
+            f"(run `python3 scripts/fix_links.py --apply` to normalize):\n",
+            file=sys.stderr,
+        )
+        for md_file, line_no, target, text_label, reason in style_violations:
+            rel = md_file.relative_to(kb_root)
+            print(f"  {rel}:{line_no}  [{text_label}]({target})  — {reason}", file=sys.stderr)
+
     sys.exit(1)
 
 
